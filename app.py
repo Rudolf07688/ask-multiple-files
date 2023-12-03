@@ -2,13 +2,14 @@ import streamlit as st
 from dotenv import load_dotenv
 from PyPDF2 import PdfReader
 from langchain.text_splitter import CharacterTextSplitter
-from langchain.embeddings import OpenAIEmbeddings, HuggingFaceInstructEmbeddings
+from langchain.embeddings import OpenAIEmbeddings  # , HuggingFaceInstructEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from htmlTemplates import css, bot_template, user_template
-from langchain.llms import HuggingFaceHub
+# from langchain.llms import HuggingFaceHub
+
 
 def get_pdf_text(pdf_docs):
     text = ""
@@ -16,6 +17,25 @@ def get_pdf_text(pdf_docs):
         pdf_reader = PdfReader(pdf)
         for page in pdf_reader.pages:
             text += page.extract_text()
+    return text
+
+
+def get_other_text(file_paths: list):
+    text = ""
+    for file_path in file_paths:
+        with open(file_path, "r") as f:
+            text += f.read().replace("\n", " ")
+    return text
+
+
+def get_text(all_docs: list):
+    text = ""
+    for doc in all_docs:
+        if doc.endswith(".pdf"):
+            text += get_pdf_text([doc])
+        else:
+            text += get_other_text([doc])
+
     return text
 
 
@@ -85,9 +105,11 @@ def main():
         pdf_docs = st.file_uploader(
             "Upload your PDFs here and click on 'Process'", accept_multiple_files=True)
         if st.button("Process"):
+            print(pdf_docs)
+            pdf_docs = [pdf_doc.name for pdf_doc in pdf_docs]
             with st.spinner("Processing"):
                 # get pdf text
-                raw_text = get_pdf_text(pdf_docs)
+                raw_text = get_text(pdf_docs)
 
                 # get the text chunks
                 text_chunks = get_text_chunks(raw_text)
