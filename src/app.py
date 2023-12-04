@@ -8,6 +8,9 @@ from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from htmlTemplates import css, bot_template, user_template
+
+import argparse
+import os
 # from langchain.llms import HuggingFaceHub
 
 
@@ -28,13 +31,14 @@ def get_other_text(file_paths: list):
     return text
 
 
-def get_text(all_docs: list):
+def get_text(all_docs: list, input_dir: str = '/app/docs'):
     text = ""
     for doc in all_docs:
+        print(f'Processing {doc}')
         if doc.endswith(".pdf"):
-            text += get_pdf_text([doc])
+            text += get_pdf_text([f'{input_dir}/{doc}'])
         else:
-            text += get_other_text([doc])
+            text += get_other_text([f'{input_dir}/{doc}'])
 
     return text
 
@@ -84,8 +88,20 @@ def handle_userinput(user_question):
                 "{{MSG}}", message.content), unsafe_allow_html=True)
 
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input-dir", type=str, help="Input directory path", default='')
+    return parser.parse_args()
+
 def main():
     load_dotenv()
+
+    args = parse_args()
+    input_dir = args.input_dir
+    print(f'Input directory: {input_dir}')
+
+    print(os.listdir(input_dir))
+
     st.set_page_config(page_title="Chat with multiple PDFs",
                        page_icon=":books:")
     st.write(css, unsafe_allow_html=True)
@@ -109,7 +125,7 @@ def main():
             pdf_docs = [pdf_doc.name for pdf_doc in pdf_docs]
             with st.spinner("Processing"):
                 # get pdf text
-                raw_text = get_text(pdf_docs)
+                raw_text = get_text(pdf_docs, input_dir)
 
                 # get the text chunks
                 text_chunks = get_text_chunks(raw_text)
